@@ -1,6 +1,7 @@
 from collections import namedtuple
 
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 import numba
 import javabridge
@@ -97,3 +98,70 @@ def image_from_table(location_table, params=DEFAULTPARAMS, stretch=0.001):
     _fill_image(image, rows, cols)
     image = _stretchlim(image, stretch)
     return image
+
+
+def select_roi(image, alpha=0.4, ax=None):
+    """Return a label image based on polygon selections made with the mouse.
+
+    Parameters
+    ----------
+    image : (M, N[, 3]) array
+        Grayscale or RGB image.
+
+    alpha : float, optional
+        Transparency value for polygons drawn over the image.
+
+    return_all : bool, optional
+        If True, an array containing each separate polygon drawn is returned.
+        (The polygons may overlap.) If False (default), latter polygons
+        "overwrite" earlier ones where they overlap.
+
+    Returns
+    -------
+    labels : array of int, shape ([Q, ]M, N)
+        The segmented regions. If mode is `'separate'`, the leading dimension
+        of the array corresponds to the number of regions that the user drew.
+
+    Notes
+    -----
+    Use left click to select the vertices of the polygon
+    and right click to confirm the selection once all vertices are selected.
+
+    Examples
+    --------
+    >>> from skimage import data, future, io
+    >>> camera = data.camera()
+    >>> mask = future.manual_polygon_segmentation(camera)  # doctest: +SKIP
+    >>> io.imshow(mask)  # doctest: +SKIP
+    >>> io.show()  # doctest: +SKIP
+    """
+    list_of_vertex_lists = []
+    polygons_drawn = []
+
+    temp_list = []
+    preview_polygon_drawn = []
+
+    if image.ndim not in (2, 3):
+        raise ValueError('Only 2D grayscale or RGB images are supported.')
+
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.imshow(image, cmap="magma")
+    ax.set_axis_off()
+    rois = []
+
+    def toggle_selector(event):
+        if event.key in ['A', 'a'] and not toggle_selector.RS.active:
+            toggle_selector.RS.set_active(True)
+
+    def onselect(eclick, erelease):
+        starts = round(eclick.ydata), round(eclick.xdata)
+        ends = round(erelease.ydata), round(erelease.xdata)
+        slices = tuple(slice(int(s), int(e)) for s, e in zip(starts, ends))
+        rois.append(slices)
+
+    from matplotlib.widgets import RectangleSelector
+    toggle_selector.RS = RectangleSelector(ax, onselect)
+    ax.figure.canvas.mpl_connect('key_press_event', toggle_selector)
+    toggle_selector.RS.set_active(True)
+    return rois
