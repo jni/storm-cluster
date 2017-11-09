@@ -203,3 +203,19 @@ def image_from_clustering(scan, coordinates, roi, params=DEFAULTPARAMS,
     blue = np.zeros_like(red)
     image = np.stack((red, green, blue), axis=-1)
     return image[slice(*roi[0]), slice(*roi[1])]
+
+
+def parameter_scan_image(coordinates,
+                         radii=(0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4),
+                         core_sizes=(3, 6, 12, 24)):
+    num_clustered = np.zeros((len(radii), len(core_sizes)))
+    largest_cluster = np.zeros_like(num_clustered)
+    for i, r in enumerate(radii):
+        for j, c in enumerate(core_sizes):
+            scan = cluster(coordinates, r, c)
+            clustered = scan.labels_ != -1
+            num_clustered[i, j] = np.sum(clustered)
+            if np.any(clustered):
+                largest_cluster[i, j] = \
+                                np.max(np.bincount(scan.labels_[clustered]))
+    return num_clustered, largest_cluster
