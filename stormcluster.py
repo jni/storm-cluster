@@ -192,15 +192,38 @@ def analyse_clustering(scan):
 
 
 def image_from_clustering(scan, coordinates, roi, params=DEFAULTPARAMS,
-                          stretch=0.001):
+                          stretch=0.001, size_threshold=None):
+    unclustered = scan.labels_ == -1
+    if size_threshold is not None:
+        cluster_sizes = np.bincount(scan.labels_[~unclustered])
+        temp_labels = np.copy(scan.labels_)
+        temp_labels[unclustered] = 0
+        large = (cluster_sizes > size_threshold)[temp_labels] & (~unclustered)
+        small = (~large) & (~unclustered)
+    else:
+        large = ~unclustered
+        small = np.zeros_like(large)
     rows, cols = np.round(coordinates).astype(int).T
+
     green = np.zeros(params.image_shape, dtype=float)
-    _fill_image(green, rows[scan.labels_ > -1], cols[scan.labels_ > -1])
-    green = _stretchlim(green, stretch)
-    red = np.zeros(params.image_shape, dtype=float)
-    _fill_image(red, rows[scan.labels_ == -1], cols[scan.labels_ == -1])
-    red = _stretchlim(red, stretch)
+    if np.any(large):
+        _fill_image(green, rows[large], cols[large])
+        green = _stretchlim(green, stretch)
+        green[np.isnan(green)] = 0
+
+    red = np.zeros_like(green, dtype=float)
+    if np.any(small):
+        _fill_image(red, rows[small], cols[small])
+        red = _stretchlim(red, stretch)
+        red[np.isnan(red)] = 0
+
     blue = np.zeros_like(red)
+    if np.any(unclustered):
+        _fill_image(blue, rows[unclustered], cols[unclustered])
+        blue = _stretchlim(blue, stretch)
+        blue[np.isnan(blue)] = 0
+    green += blue  # make cyan
+
     image = np.stack((red, green, blue), axis=-1)
     return image[slice(*roi[0]), slice(*roi[1])]
 
