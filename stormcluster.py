@@ -165,3 +165,41 @@ def select_roi(image, alpha=0.4, ax=None):
     ax.figure.canvas.mpl_connect('key_press_event', toggle_selector)
     toggle_selector.RS.set_active(True)
     return rois
+
+
+def _in_range(arr, tup):
+    low, high = tup
+    return (low <= arr) & (arr < high)
+
+
+def cluster(coordinates, radius, core_size):
+    scan = DBSCAN(eps=radius, min_samples=core_size).fit(coordinates)
+    return scan
+
+
+def analyse_clustering(scan):
+    labels = scan.labels_
+    unclustered = labels == -1
+    num_unclustered = np.sum(unclustered)
+    cluster_sizes = np.bincount(labels[~unclustered])
+    counts, bin_edges = np.histogram(cluster_sizes, bins='auto')
+    histogram = np.convolve(bin_edges, [0.5, 0.5], 'valid'), counts
+    print(f'There are {len(cluster_sizes)} clusters, and {num_unclustered} '
+          f'outlier points, out of {labels.size}. The largest cluster size is '
+          f'{np.max(cluster_sizes)} and the median is '
+          f'{np.median(cluster_sizes)}')
+    return labels, cluster_sizes, histogram
+
+
+def image_from_clustering(scan, coordinates, roi, params=DEFAULTPARAMS,
+                          stretch=0.001):
+    rows, cols = np.round(coordinates).astype(int).T
+    green = np.zeros(params.image_shape, dtype=float)
+    _fill_image(green, rows[scan.labels_ > -1], cols[scan.labels_ > -1])
+    green = _stretchlim(green, stretch)
+    red = np.zeros(params.image_shape, dtype=float)
+    _fill_image(red, rows[scan.labels_ == -1], cols[scan.labels_ == -1])
+    red = _stretchlim(red, stretch)
+    blue = np.zeros_like(red)
+    image = np.stack((red, green, blue), axis=-1)
+    return image[slice(*roi[0]), slice(*roi[1])]
