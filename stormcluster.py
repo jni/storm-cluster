@@ -157,7 +157,7 @@ def select_roi(image, alpha=0.4, ax=None):
     def onselect(eclick, erelease):
         starts = round(eclick.ydata), round(eclick.xdata)
         ends = round(erelease.ydata), round(erelease.xdata)
-        slices = tuple(slice(int(s), int(e)) for s, e in zip(starts, ends))
+        slices = tuple((int(s), int(e)) for s, e in zip(starts, ends))
         rois.append(slices)
 
     from matplotlib.widgets import RectangleSelector
