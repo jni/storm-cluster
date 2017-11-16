@@ -2,6 +2,7 @@ from collections import namedtuple
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.widgets import RectangleSelector
 import pandas as pd
 import numba
 import javabridge
@@ -100,27 +101,26 @@ def image_from_table(location_table, params=DEFAULTPARAMS, stretch=0.001):
     return image
 
 
-def select_roi(image, alpha=0.4, ax=None):
+def select_roi(image, rois=None, ax=None, axim=None):
     """Return a label image based on polygon selections made with the mouse.
 
     Parameters
     ----------
     image : (M, N[, 3]) array
         Grayscale or RGB image.
-
-    alpha : float, optional
-        Transparency value for polygons drawn over the image.
-
-    return_all : bool, optional
-        If True, an array containing each separate polygon drawn is returned.
-        (The polygons may overlap.) If False (default), latter polygons
-        "overwrite" earlier ones where they overlap.
+    rois : list, optional
+        If given, append ROIs to this existing list. Otherwise a new list
+        object will be created.
+    ax : matplotlib Axes, optional
+        The Axes on which to do the plotting.
+    axim : matplotlib AxesImage, optional
+        An existing AxesImage on which to show the image.
 
     Returns
     -------
-    labels : array of int, shape ([Q, ]M, N)
-        The segmented regions. If mode is `'separate'`, the leading dimension
-        of the array corresponds to the number of regions that the user drew.
+    rois : list of tuple of ints
+        The selected regions, in the form
+        [[(row_start, row_end), (col_start, col_end)]].
 
     Notes
     -----
@@ -135,20 +135,18 @@ def select_roi(image, alpha=0.4, ax=None):
     >>> io.imshow(mask)  # doctest: +SKIP
     >>> io.show()  # doctest: +SKIP
     """
-    list_of_vertex_lists = []
-    polygons_drawn = []
-
-    temp_list = []
-    preview_polygon_drawn = []
-
     if image.ndim not in (2, 3):
         raise ValueError('Only 2D grayscale or RGB images are supported.')
 
-    if ax is None:
+    if ax is None and axim is None:
         fig, ax = plt.subplots()
-    ax.imshow(image, cmap="magma")
-    ax.set_axis_off()
-    rois = []
+    if axim is None:
+        ax.clear()
+        axim = ax.imshow(image, cmap="magma")
+        ax.set_axis_off()
+    else:
+        axim.set_array(image)
+    rois = rois or []
 
     def toggle_selector(event):
         if event.key in ['A', 'a'] and not toggle_selector.RS.active:
@@ -160,7 +158,9 @@ def select_roi(image, alpha=0.4, ax=None):
         slices = tuple((int(s), int(e)) for s, e in zip(starts, ends))
         rois.append(slices)
 
-    from matplotlib.widgets import RectangleSelector
+    # Ensure that the widget remains active by creating a reference to it.
+    # There's probably a better place to put that reference but this will do
+    # for now. (From the matplotlib RectangleSelector gallery example.)
     toggle_selector.RS = RectangleSelector(ax, onselect)
     ax.figure.canvas.mpl_connect('key_press_event', toggle_selector)
     toggle_selector.RS.set_active(True)
@@ -242,3 +242,5 @@ def parameter_scan_image(coordinates,
                 largest_cluster[i, j] = \
                                 np.max(np.bincount(scan.labels_[clustered]))
     return num_clustered, largest_cluster
+
+
