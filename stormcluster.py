@@ -2,11 +2,12 @@ import sys
 from collections import namedtuple
 
 import numpy as np
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector
-from matplotlib.backends.backend_qt5 import (FigureCanvasQT as FigureCanvas,
-                                             NavigationToolbar2QT as
-                                             NavigationToolbar2)
+from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg
+                                                as FigureCanvas)
 from matplotlib.figure import Figure
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
@@ -287,7 +288,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.main_widget = QtWidgets.QWidget(self)
 
         layout = QtWidgets.QVBoxLayout(self.main_widget)
-        self.image_canvas = ImageCanvas(self)
+        self.image_canvas = ImageCanvas(self.main_widget)
         layout.addWidget(self.image_canvas)
 
         select_files = QtWidgets.QPushButton(text='Select Files')
@@ -309,7 +310,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     def open_files(self):
         window_name = 'Select LDCTracked.txt files'
-        files, resp = QtWidgets.QFileDialog.getOpenFileNames(self, window_name)
+        files, resp = QtWidgets.QFileDialog.getOpenFileNames(self.main_widget,
+                                                             filter='*LDCTracked.txt')
         self.files = files
         print(self.files)
 
@@ -332,6 +334,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.image_canvas.set_image(color.gray2rgb(image))
         print(f'image index: {self.image_index}')
         print(f'file: {self.files[self.image_index]}')
+
 
 if __name__ == '__main__':
     qApp = QtWidgets.QApplication(sys.argv)
