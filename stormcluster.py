@@ -1,14 +1,20 @@
+import sys
 from collections import namedtuple
 
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector
+from matplotlib.backends.backend_qt5 import (FigureCanvasQT as FigureCanvas,
+                                             NavigationToolbar2QT as
+                                             NavigationToolbar2)
+from matplotlib.figure import Figure
+from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
 import numba
 import javabridge
 import bioformats
 from sklearn.cluster import DBSCAN
-from skimage import io
+from skimage import io, color
 
 
 TableParams = namedtuple('TableParams',
@@ -244,3 +250,91 @@ def parameter_scan_image(coordinates,
     return num_clustered, largest_cluster
 
 
+class ImageCanvas(FigureCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100,
+                 image_size=(2048, 2048), image_cmap='magma'):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        self.image_size = image_size
+
+        self.compute_initial_figure()
+
+        FigureCanvas.__init__(self, fig)
+        self.setParent(parent)
+
+        FigureCanvas.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding,
+                                   QtWidgets.QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+
+    def compute_initial_figure(self):
+        image_size = self.image_size
+        self.axim = self.axes.imshow(np.broadcast_to(0., image_size + (3,)))
+
+    def set_image(self, image):
+        self.axim.set_array(image)
+        self.draw_idle()
+
+
+class ApplicationWindow(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.image_index = 0
+        self.files = []
+        QtWidgets.QMainWindow.__init__(self)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setWindowTitle('Select ROIs')
+
+        self.main_widget = QtWidgets.QWidget(self)
+
+        layout = QtWidgets.QVBoxLayout(self.main_widget)
+        self.image_canvas = ImageCanvas(self)
+        layout.addWidget(self.image_canvas)
+
+        select_files = QtWidgets.QPushButton(text='Select Files')
+        select_files.clicked.connect(self.open_files)
+        previous_image = QtWidgets.QPushButton(text='◀')
+        previous_image.clicked.connect(self.select_previous_image)
+        next_image = QtWidgets.QPushButton(text='▶')
+        next_image.clicked.connect(self.select_next_image)
+        buttons = QtWidgets.QHBoxLayout(self.main_widget)
+        buttons.addWidget(select_files, alignment=QtCore.Qt.AlignLeft)
+        buttons.addWidget(previous_image, alignment=QtCore.Qt.AlignRight)
+        buttons.addWidget(next_image, alignment=QtCore.Qt.AlignRight)
+        layout.addLayout(buttons)
+        self.image_canvas.draw()
+
+        self.main_widget.setFocus()
+        self.setCentralWidget(self.main_widget)
+
+    @QtCore.pyqtSlot()
+    def open_files(self):
+        window_name = 'Select LDCTracked.txt files'
+        files, resp = QtWidgets.QFileDialog.getOpenFileNames(self, window_name)
+        self.files = files
+        print(self.files)
+
+    @QtCore.pyqtSlot()
+    def select_previous_image(self):
+        self.image_index = max(0, self.image_index - 1)
+        file = self.files[self.image_index]
+        table = read_locations_table(file)
+        image = image_from_table(table)
+        self.image_canvas.set_image(color.gray2rgb(image))
+        print(f'image index: {self.image_index}')
+        print(f'file: {self.files[self.image_index]}')
+
+    @QtCore.pyqtSlot()
+    def select_next_image(self):
+        self.image_index = min(self.image_index + 1, len(self.files) - 1)
+        file = self.files[self.image_index]
+        table = read_locations_table(file)
+        image = image_from_table(table)
+        self.image_canvas.set_image(color.gray2rgb(image))
+        print(f'image index: {self.image_index}')
+        print(f'file: {self.files[self.image_index]}')
+
+if __name__ == '__main__':
+    qApp = QtWidgets.QApplication(sys.argv)
+    aw = ApplicationWindow()
+    aw.show()
+    sys.exit(qApp.exec_())
