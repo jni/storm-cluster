@@ -252,13 +252,15 @@ def parameter_scan_image(coordinates,
 
 
 class ImageCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=5, height=4, dpi=100,
+    def __init__(self, parent=None, width=5, height=5, dpi=100,
                  image_size=(2048, 2048), image_cmap='magma'):
         fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
+        self.axes = fig.add_axes([0, 0, 1, 1])
         self.image_size = image_size
 
         self.compute_initial_figure()
+        self.axes.set_axis_off()
+        fig.set_facecolor('black')
 
         FigureCanvas.__init__(self, fig)
         self.setParent(parent)
