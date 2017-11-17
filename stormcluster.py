@@ -258,7 +258,8 @@ class ImageCanvas(FigureCanvas):
         self.axes = fig.add_axes([0, 0, 1, 1])
         self.image_size = image_size
 
-        self.compute_initial_figure()
+        self.axim = self.axes.imshow(np.broadcast_to(0., image_size),
+                                     cmap=image_cmap, vmin=0, vmax=1)
         self.axes.set_axis_off()
         fig.set_facecolor('black')
 
@@ -268,10 +269,6 @@ class ImageCanvas(FigureCanvas):
         FigureCanvas.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding,
                                    QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-
-    def compute_initial_figure(self):
-        image_size = self.image_size
-        self.axim = self.axes.imshow(np.broadcast_to(0., image_size + (3,)))
 
     def set_image(self, image):
         self.axim.set_array(image)
@@ -315,31 +312,30 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def open_files(self):
-        window_name = 'Select LDCTracked.txt files'
-        files, resp = QtWidgets.QFileDialog.getOpenFileNames(self.main_widget,
-                                                             filter='*LDCTracked.txt')
+        files, resp = QtWidgets.QFileDialog.getOpenFileNames(
+                                    self.main_widget, filter='*LDCTracked.txt')
         self.files = files
         print(self.files)
+        self.set_image_index(0)
+
+    def set_image_index(self, i=0):
+        if len(self.files) > 0:
+            i = np.clip(i, 0, len(self.files) - 1)
+            self.image_index = i
+            file = self.files[i]
+            table = read_locations_table(file)
+            image = image_from_table(table)
+            self.image_canvas.set_image(image)
+            print(f'image index: {self.image_index}')
+            print(f'file: {self.files[self.image_index]}')
 
     @QtCore.pyqtSlot()
     def select_previous_image(self):
-        self.image_index = max(0, self.image_index - 1)
-        file = self.files[self.image_index]
-        table = read_locations_table(file)
-        image = image_from_table(table)
-        self.image_canvas.set_image(color.gray2rgb(image))
-        print(f'image index: {self.image_index}')
-        print(f'file: {self.files[self.image_index]}')
+        self.set_image_index(self.image_index - 1)
 
     @QtCore.pyqtSlot()
     def select_next_image(self):
-        self.image_index = min(self.image_index + 1, len(self.files) - 1)
-        file = self.files[self.image_index]
-        table = read_locations_table(file)
-        image = image_from_table(table)
-        self.image_canvas.set_image(color.gray2rgb(image))
-        print(f'image index: {self.image_index}')
-        print(f'file: {self.files[self.image_index]}')
+        self.set_image_index(self.image_index + 1)
 
 
 if __name__ == '__main__':
