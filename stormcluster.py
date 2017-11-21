@@ -108,7 +108,7 @@ def image_from_table(location_table, params=DEFAULTPARAMS, stretch=0.001):
     return image
 
 
-def select_roi(image, rois=None, ax=None, axim=None):
+def select_roi(image, rois=None, ax=None, axim=None, qtapp=None):
     """Return a label image based on polygon selections made with the mouse.
 
     Parameters
@@ -122,6 +122,9 @@ def select_roi(image, rois=None, ax=None, axim=None):
         The Axes on which to do the plotting.
     axim : matplotlib AxesImage, optional
         An existing AxesImage on which to show the image.
+    qtapp : QtApplication
+        The main Qt application for ROI selection. If given, the ROIs will
+        be inserted at the right location for the image index.
 
     Returns
     -------
@@ -163,7 +166,12 @@ def select_roi(image, rois=None, ax=None, axim=None):
         starts = round(eclick.ydata), round(eclick.xdata)
         ends = round(erelease.ydata), round(erelease.xdata)
         slices = tuple((int(s), int(e)) for s, e in zip(starts, ends))
-        rois.append(slices)
+        if qtapp is None:
+            rois.append(slices)
+        else:
+            index = qtapp.image_index
+            rois[index] = slices
+            qtapp.select_next_image()
 
     # Ensure that the widget remains active by creating a reference to it.
     # There's probably a better place to put that reference but this will do
@@ -307,6 +315,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         layout.addLayout(buttons)
         self.image_canvas.draw()
 
+        self.rois = []
+
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
 
@@ -317,6 +327,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.files = files
         print(self.files)
         self.set_image_index(0)
+        self.rois = [(slice(None), slice(None))] * len(self.files)
+        image = self.image_canvas.axim.get_array()
+        axes = self.image_canvas.axes
+        axim = self.image_canvas.axim
+        select_roi(image, self.rois, ax=axes, axim=axim, qtapp=self)
 
     def set_image_index(self, i=0):
         if len(self.files) > 0:
