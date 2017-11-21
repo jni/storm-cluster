@@ -173,12 +173,13 @@ def select_roi(image, rois=None, ax=None, axim=None, qtapp=None):
             rois[index] = slices
             qtapp.select_next_image()
 
+    selector = RectangleSelector(ax, onselect)
     # Ensure that the widget remains active by creating a reference to it.
     # There's probably a better place to put that reference but this will do
     # for now. (From the matplotlib RectangleSelector gallery example.)
-    toggle_selector.RS = RectangleSelector(ax, onselect)
+    toggle_selector.RS = selector
     ax.figure.canvas.mpl_connect('key_press_event', toggle_selector)
-    toggle_selector.RS.set_active(True)
+    selector.set_active(True)
     return rois
 
 
