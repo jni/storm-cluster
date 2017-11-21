@@ -334,6 +334,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         select_roi(image, self.rois, ax=axes, axim=axim, qtapp=self)
 
     def set_image_index(self, i=0):
+        if i == len(self.files):
+            print(f'rois: {self.rois}')
         if len(self.files) > 0:
             i = np.clip(i, 0, len(self.files) - 1)
             self.image_index = i
