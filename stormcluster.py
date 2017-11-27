@@ -91,6 +91,8 @@ def _stretchlim(image, bottom=0.001, top=None, in_place=True):
         out[:] = image
     if top is None:
         top = 1 - bottom
+    if not np.any(out):
+        return out  # protect against empty images
     q0, q1 = np.percentile(image, [100*bottom, 100*top])
     out -= q0
     out /= q1 - q0
