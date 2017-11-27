@@ -12,8 +12,6 @@ from matplotlib.figure import Figure
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
 import numba
-import javabridge
-import bioformats
 from sklearn.cluster import DBSCAN
 from skimage import io, color
 
