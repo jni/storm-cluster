@@ -286,6 +286,13 @@ class ImageCanvas(FigureCanvas):
         self.axim.set_array(image)
         self.draw_idle()
 
+    def new_image(self, image):
+        if image.ndim == 3:
+            self.axim = self.axes.imshow(image)
+        else:
+            self.axim = self.axes.imshow(image, cmap='magma')
+        self.axes.set_axis_off()
+        self.draw_idle()
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -320,6 +327,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.image_canvas.draw()
 
         self.rois = []
+        self._mode = 'roi'
 
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
@@ -338,15 +346,23 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         select_roi(image, self.rois, ax=axes, axim=axim, qtapp=self)
 
     def set_image_index(self, i=0):
-        if i == len(self.files):
+        if i == len(self.files) and self._mode == 'roi':
             print(f'rois: {self.rois}')
+            self.clustering_mode()
+            i = 0
         if len(self.files) > 0:
             i = np.clip(i, 0, len(self.files) - 1)
             self.image_index = i
-            file = self.files[i]
-            table = read_locations_table(file)
-            image = image_from_table(table)
-            self.image_canvas.set_image(image)
+            if self._mode == 'roi':
+                file = self.files[i]
+                table = read_locations_table(file)
+                image = image_from_table(table)
+                self.image_canvas.set_image(image)
+            else:
+                image = self.images[i]
+                print(f'setting clustering image {i}')
+                self.image_canvas.new_image(image)
+
             print(f'image index: {self.image_index}')
             print(f'file: {self.files[self.image_index]}')
 
@@ -357,6 +373,23 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     def select_next_image(self):
         self.set_image_index(self.image_index + 1)
+
+    def clustering_mode(self):
+        self._mode = 'clustering'
+        radius = 3.2
+        core_size = 6  # parameters -- need to be user-selected
+        cluster_size_threshold = 300
+        self.images = []
+        for i, (file, roi) in enumerate(zip(self.files, self.rois)):
+            table = read_locations_table(file)
+            coords = np.stack(image_coords(table), axis=1)
+            coords_roi = coords[_in_range(coords[:, 0], roi[0]) &
+                                _in_range(coords[:, 1], roi[1])]
+            scan = cluster(coords_roi, radius=radius, core_size=core_size)
+            self.images.append(image_from_clustering(scan, coords_roi, roi,
+                                        size_threshold=cluster_size_threshold))
+            self.set_image_index(i)
+        self.set_image_index(0)
 
 
 if __name__ == '__main__':
