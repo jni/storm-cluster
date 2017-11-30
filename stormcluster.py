@@ -395,7 +395,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
 
 if __name__ == '__main__':
-    qApp = QtWidgets.QApplication(sys.argv)
+    qApp = QtWidgets.QApplication(sys.argv[:1])
     aw = ApplicationWindow()
     aw.show()
+    if len(sys.argv) > 1:
+        aw.open_file_list(sys.argv[1:])
     sys.exit(qApp.exec_())
