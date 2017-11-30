@@ -335,6 +335,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def open_files(self):
         files, resp = QtWidgets.QFileDialog.getOpenFileNames(
                                     self.main_widget, filter='*LDCTracked.txt')
+        self.open_file_list(files)
+
+    def open_file_list(self, files):
         self.files = files
         print(self.files)
         self.set_image_index(0)
