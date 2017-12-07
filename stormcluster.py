@@ -365,10 +365,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         select_roi(image, self.rois, ax=axes, axim=axim, qtapp=self)
 
     def set_image_index(self, i=0):
-        if i == len(self.files) and self._mode == 'roi':
-            print(f'rois: {self.rois}')
-            self.clustering_mode()
-            i = 0
+        if i == len(self.files):
+            if self._mode == 'roi':
+                print(f'rois: {self.rois}')
+                self.clustering_mode()
+                i = 0
+            else:  # _mode == 'clustering'
+                self.save_clustering_results()
+                return
         if len(self.files) > 0:
             i = np.clip(i, 0, len(self.files) - 1)
             self.image_index = i
@@ -378,6 +382,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 image = image_from_table(table)
                 self.image_canvas.set_image(image)
             else:
+                if i == len(self.images):
+                    self.make_cluster_image(i)
                 image = self.images[i]
                 print(f'setting clustering image {i}')
                 self.image_canvas.new_image(image)
