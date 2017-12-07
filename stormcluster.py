@@ -218,6 +218,14 @@ def analyse_clustering(scan):
     return labels, cluster_sizes, histogram
 
 
+def summarise_clustering(scan, coords):
+    labels, sizes, hist = analyse_clustering(scan)
+    cluster_centroids = _centroids(labels, sizes, coords)
+    cluster_sq_centroids = _centroids(labels, sizes, coords ** 2)
+    centroid_vars = np.sqrt(cluster_sq_centroids - cluster_centroids ** 2)
+    cluster_ids = np.arange(1, sizes.shape[0] + 1)
+    df = pd.DataFrame({''})
+
 def image_from_clustering(scan, coordinates, roi, params=DEFAULTPARAMS,
                           stretch=0.001, size_threshold=None):
     unclustered = scan.labels_ == -1
