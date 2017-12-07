@@ -230,7 +230,10 @@ def summarise_clustering(scan, coords):
                     'std dev row', 'std dev column',
                     'detections', 'cluster id']
     idxs = np.arange(1, np.max(labels) + 1)
-    data = np.stack((cluster_centroids, centroid_vars, sizes, idxs), axis=1)
+    columns = (cluster_centroids, centroid_vars,
+               sizes[1:, np.newaxis], idxs[:, np.newaxis])
+    print([c.shape for c in columns])
+    data = np.concatenate(columns, axis=1)
     df = pd.DataFrame(data=data, columns=column_names)
     return df
 
@@ -412,7 +415,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self._mode = 'clustering'
         self.images = []
         self.cluster_data = []
-        self.make_image(0)
         self.set_image_index(0)
 
     def make_cluster_image(self, i):
@@ -439,8 +441,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         name = QtWidgets.QFileDialog.getSaveFileName(self.main_widget,
                                                      'Save clusters to file',
                                                      directory=input_dir,
-                                                     filter='*.xlsx')
+                                                     filter='*.xlsx')[0]
+        print(name)
         cluster_table = pd.concat(self.cluster_data)
+        print(name)
         cluster_table.to_excel(name)
 
 
