@@ -226,8 +226,14 @@ def summarise_clustering(scan, coords):
     cluster_centroids = _centroids(labels, sizes, coords)
     cluster_sq_centroids = _centroids(labels, sizes, coords ** 2)
     centroid_vars = np.sqrt(cluster_sq_centroids - cluster_centroids ** 2)
-    cluster_ids = np.arange(1, sizes.shape[0] + 1)
-    df = pd.DataFrame({''})
+    column_names = ['centroid row', 'centroid column',
+                    'std dev row', 'std dev column',
+                    'detections', 'cluster id']
+    idxs = np.arange(1, np.max(labels) + 1)
+    data = np.stack((cluster_centroids, centroid_vars, sizes, idxs), axis=1)
+    df = pd.DataFrame(data=data, columns=column_names)
+    return df
+
 
 def image_from_clustering(scan, coordinates, roi, params=DEFAULTPARAMS,
                           stretch=0.001, size_threshold=None):
@@ -312,6 +318,7 @@ class ImageCanvas(FigureCanvas):
             self.axim = self.axes.imshow(image, cmap='magma')
         self.axes.set_axis_off()
         self.draw_idle()
+
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     def __init__(self):
