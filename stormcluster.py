@@ -393,7 +393,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 self.image_canvas.set_image(image)
             else:
                 if i == len(self.images):
-                    self.make_cluster_image(i)
+                    scan, coords = self.make_cluster_image(i)
+                    df = summarise_clustering(scan, coords)
+                    df['filename'] = os.path.basename(self.files[i])
+                    self.cluster_data.append(df)
                 image = self.images[i]
                 self.image_canvas.new_image(image)
 
@@ -411,7 +414,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cluster_data = []
         self.make_image(0)
         self.set_image_index(0)
-        self.cluster_table = pd.DataFrame()
 
     def make_cluster_image(self, i):
         radius = 3.2
@@ -430,7 +432,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.images.append(image)
         else:
             self.images[i] = image
-        self.cluster_data.append(scan)
+        return scan, coords_roi
 
     def save_clustering_results(self):
         input_dir = os.path.dirname(self.files[0])
@@ -438,7 +440,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                                                      'Save clusters to file',
                                                      directory=input_dir,
                                                      filter='*.xlsx')
-        self.cluster_table.to_excel(name)
+        cluster_table = pd.concat(self.cluster_data)
+        cluster_table.to_excel(name)
 
 
 if __name__ == '__main__':
