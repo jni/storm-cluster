@@ -397,20 +397,30 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def clustering_mode(self):
         self._mode = 'clustering'
+        self.images = []
+        self.cluster_data = []
+        self.make_image(0)
+        self.set_image_index(0)
+        self.cluster_table = pd.DataFrame()
+
+    def make_cluster_image(self, i):
         radius = 3.2
         core_size = 6  # parameters -- need to be user-selected
         cluster_size_threshold = 300
-        self.images = []
-        for i, (file, roi) in enumerate(zip(self.files, self.rois)):
-            table = read_locations_table(file)
-            coords = np.stack(image_coords(table), axis=1)
-            coords_roi = coords[_in_range(coords[:, 0], roi[0]) &
-                                _in_range(coords[:, 1], roi[1])]
-            scan = cluster(coords_roi, radius=radius, core_size=core_size)
-            self.images.append(image_from_clustering(scan, coords_roi, roi,
-                                        size_threshold=cluster_size_threshold))
-            self.set_image_index(i)
-        self.set_image_index(0)
+        file = self.files[i]
+        roi = self.rois[i]
+        table = read_locations_table(file)
+        coords = np.stack(image_coords(table), axis=1)
+        coords_roi = coords[_in_range(coords[:, 0], roi[0]) &
+                            _in_range(coords[:, 1], roi[1])]
+        scan = cluster(coords_roi, radius=radius, core_size=core_size)
+        image = image_from_clustering(scan, coords_roi, roi,
+                                      size_threshold=cluster_size_threshold)
+        if i >= len(self.images):
+            self.images.append(image)
+        else:
+            self.images[i] = image
+        self.cluster_data.append(scan)
 
 
 if __name__ == '__main__':
