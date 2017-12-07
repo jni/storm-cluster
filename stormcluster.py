@@ -195,6 +195,15 @@ def cluster(coordinates, radius, core_size):
     return scan
 
 
+def _centroids(labels, sizes, coords):
+    clustered = labels > -1
+    labels, coords = labels[clustered], coords[clustered]
+    grouping = np.argsort(labels)
+    sums = np.add.reduceat(coords[grouping], np.cumsum(sizes)[:-1])
+    means = sums / sizes[1:, np.newaxis]
+    return means
+
+
 def analyse_clustering(scan):
     labels = scan.labels_
     unclustered = labels == -1
