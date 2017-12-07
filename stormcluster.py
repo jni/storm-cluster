@@ -171,9 +171,11 @@ def select_roi(image, rois=None, ax=None, axim=None, qtapp=None):
         else:
             index = qtapp.image_index
             rois[index] = slices
+            qtapp.rectangle_selector.set_active(False)
             qtapp.select_next_image()
+            qtapp.rectangle_selector.set_active(True)
 
-    selector = RectangleSelector(ax, onselect)
+    selector = RectangleSelector(ax, onselect, useblit=True)
     if qtapp is None:
         # Ensure that the widget remains active by creating a reference to it.
         # There's probably a better place to put that reference but this will do
