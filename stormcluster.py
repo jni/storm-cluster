@@ -1,3 +1,4 @@
+import os
 import sys
 from collections import namedtuple
 
@@ -421,6 +422,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         else:
             self.images[i] = image
         self.cluster_data.append(scan)
+
+    def save_clustering_results(self):
+        input_dir = os.path.dirname(self.files[0])
+        name = QtWidgets.QFileDialog.getSaveFileName(self.main_widget,
+                                                     'Save clusters to file',
+                                                     directory=input_dir,
+                                                     filter='*.xlsx')
+        self.cluster_table.to_excel(name)
 
 
 if __name__ == '__main__':
