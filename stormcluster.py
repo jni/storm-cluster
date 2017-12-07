@@ -385,11 +385,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 if i == len(self.images):
                     self.make_cluster_image(i)
                 image = self.images[i]
-                print(f'setting clustering image {i}')
                 self.image_canvas.new_image(image)
-
-            print(f'image index: {self.image_index}')
-            print(f'file: {self.files[self.image_index]}')
 
     @QtCore.pyqtSlot()
     def select_previous_image(self):
