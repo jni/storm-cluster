@@ -292,17 +292,30 @@ def cluster_circle_plot(image, coordinates, data, roi, params=DEFAULTPARAMS,
 
 
 def image_from_clustering(scan, coordinates, roi, params=DEFAULTPARAMS,
-                          stretch=0.001, size_threshold=None):
+                          stretch=0.001, size_threshold=None, max_size=None,
+                          use_diameter=True):
     unclustered = scan.labels_ == -1
     if size_threshold is not None:
-        cluster_sizes = np.bincount(scan.labels_[~unclustered])
         temp_labels = np.copy(scan.labels_)
         temp_labels[unclustered] = 0
-        large = (cluster_sizes > size_threshold)[temp_labels] & (~unclustered)
-        small = (~large) & (~unclustered)
+        if use_diameter:
+            cluster_sizes = labeled_comprehension(coordinates, scan.labels_,
+                                                  bbox_diameter)
+        else:
+            cluster_sizes = np.bincount(scan.labels_[~unclustered])
+        large = ((cluster_sizes > size_threshold)[temp_labels] &
+                 (~unclustered))
+        if max_size is not None:
+            too_large = (((cluster_sizes > max_size)[temp_labels] &
+                         (~unclustered)))
+        else:
+            too_large = np.zeros_like(large)
+        large &= ~too_large
+        small = (~large) & (~too_large) & (~unclustered)
     else:
         large = ~unclustered
         small = np.zeros_like(large)
+        too_large = small
     rows, cols = np.round(coordinates).astype(int).T
 
     green = np.zeros(params.image_shape, dtype=float)
@@ -322,9 +335,17 @@ def image_from_clustering(scan, coordinates, roi, params=DEFAULTPARAMS,
         _fill_image(blue, rows[unclustered], cols[unclustered])
         blue = _stretchlim(blue, stretch)
         blue[np.isnan(blue)] = 0
-    green += blue  # make cyan
+    # green += blue  # make cyan
+
+    gray = np.zeros_like(red)
+    if np.any(too_large):
+        _fill_image(gray, rows[too_large], cols[too_large])
+        gray = _stretchlim(gray, stretch)
+        gray[np.isnan(gray)] = 0
 
     image = np.stack((red, green, blue), axis=-1)
+    image[gray > 0] = (gray[gray > 0] * 0.5)[..., np.newaxis]
+
     return image[slice(*roi[0]), slice(*roi[1])]
 
 
