@@ -221,21 +221,74 @@ def analyse_clustering(scan):
     return labels, cluster_sizes, histogram
 
 
+def bbox_diameter(coords):
+    return np.hypot(*np.max(coords, axis=0) - np.min(coords, axis=0))
+
+
 def summarise_clustering(scan, coords):
     labels, sizes, hist = analyse_clustering(scan)
+    diameters = labeled_comprehension(coords, scan.labels_,
+                                      bbox_diameter)[1:, np.newaxis]
     cluster_centroids = _centroids(labels, sizes, coords)
     cluster_sq_centroids = _centroids(labels, sizes, coords ** 2)
     centroid_vars = np.sqrt(cluster_sq_centroids - cluster_centroids ** 2)
     column_names = ['centroid row', 'centroid column',
                     'std dev row', 'std dev column',
-                    'detections', 'cluster id']
+                    'detections', 'cluster id', 'diameter']
     idxs = np.arange(1, np.max(labels) + 1)
     columns = (cluster_centroids, centroid_vars,
-               sizes[1:, np.newaxis], idxs[:, np.newaxis])
+               sizes[1:, np.newaxis], idxs[:, np.newaxis], diameters)
     print([c.shape for c in columns])
     data = np.concatenate(columns, axis=1)
     df = pd.DataFrame(data=data, columns=column_names)
     return df
+
+
+def labeled_comprehension(features, labels, function, *args,
+                          extra_args=(), extra_kwargs={}, **kwargs):
+    """Like ndi.labeled_comprehension, but features can be higher D."""
+    nonneg = labels >= 0
+    features = features[nonneg]
+    labels = labels[nonneg]
+    sorter = np.argsort(labels)
+    labels = labels[sorter]
+    features = features[sorter]
+    boundaries = np.concatenate([[0], np.flatnonzero(np.diff(labels)) + 1])
+    args = args + extra_args
+    kwargs = {**kwargs, **extra_kwargs}
+    if hasattr(function, 'reduceat'):
+        result = function.reduceat(features, boundaries, *args, **kwargs)
+    else:
+        boundaries = np.concatenate((boundaries, [labels.size]))
+        test_index = min(3, features.shape[0])
+        test_value = function(features[:test_index], *args, **kwargs)
+        result_shape = (boundaries.size - 1,) + np.shape(test_value)
+        result = np.empty(result_shape)
+        for i, (start, stop) in enumerate(zip(boundaries, boundaries[1:])):
+            result[i] = function(features[start:stop], *args, **kwargs)
+    return result
+
+
+def cluster_circle_plot(image, coordinates, data, roi, params=DEFAULTPARAMS,
+                        stretch=0.001, size_threshold=None, max_size=None,
+                        ax=None):
+    colors = ['gray', 'C9', 'C1', 'C2']
+    ax = ax or plt.subplots()[1]
+    image = _stretchlim(image, stretch)
+    ax.imshow(image, cmap='gray')
+    ax.set_xlim(*roi[1])
+    ax.set_ylim(*roi[0])
+    if size_threshold is None:
+        size_threshold = 0
+    if max_size is None:
+        max_size = np.inf
+    for y, x, *_, d in data.values:
+        color_index = int(np.digitize(d, [0, size_threshold, max_size]))
+        color = colors[color_index]
+        alpha = 0.9 - (color_index > 2) * 0.5
+        ax.add_artist(plt.Circle((x, y), d/2, fill=False, color=color,
+                                 linewidth=0.5, alpha=alpha))
+    return ax
 
 
 def image_from_clustering(scan, coordinates, roi, params=DEFAULTPARAMS,
