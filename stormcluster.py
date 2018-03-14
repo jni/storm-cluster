@@ -491,10 +491,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cluster_data = []
         self.set_image_index(0)
 
-    def make_cluster_image(self, i):
-        radius = 3.2
-        core_size = 6  # parameters -- need to be user-selected
-        cluster_size_threshold = 300
+    def make_cluster_image(self, i, radius=1.6, core_size=6):
+        cluster_size_threshold = 10
+        cluster_max_size = 30
         file = self.files[i]
         roi = self.rois[i]
         table = read_locations_table(file)
@@ -503,7 +502,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                             _in_range(coords[:, 1], roi[1])]
         scan = cluster(coords_roi, radius=radius, core_size=core_size)
         image = image_from_clustering(scan, coords_roi, roi,
-                                      size_threshold=cluster_size_threshold)
+                                      size_threshold=cluster_size_threshold,
+                                      max_size=cluster_max_size)
         if i >= len(self.images):
             self.images.append(image)
         else:
