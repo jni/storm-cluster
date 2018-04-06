@@ -1,0 +1,11 @@
+- distance between clusters (ie are they assembling over time)
+- can we count the number of subunits in a donut
+
+- threshold by size and then count puncta vs bigger subunits
+
+- try finding size instead of number of detections
+
+- infer a process from more timepoints: 16 20 22 24 30
+
+- compare density of knobs in SEM whole cells vs sheared STORM
+
