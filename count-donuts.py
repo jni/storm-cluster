@@ -52,8 +52,10 @@ for _, _, x, y, _, tab in coords.itertuples(index=False, name=None):
 coords_fig['Detections'] = detections
 coords['detections'] = detections
 
-sns.stripplot(x='Type', y='Detections', hue='Cell', data=coords_fig, jitter=True, size=3)
-ax.legend(loc='upper left', ncol=2, fontsize='x-small', markerscale=0.3, framealpha=0.3, title='Cell')
+sns.stripplot(x='Type', y='Detections', hue='Cell', data=coords_fig,
+              jitter=True, size=3, palette=sns.husl_palette(11, l=0.6))
+legend = ax.legend(loc='upper left', ncol=2, fontsize='x-small', markerscale=0.3, framealpha=0.3, title='Cell')
+plt.setp(legend.get_title(), fontsize='small')
 fig.tight_layout()
 
 # plt.show()
