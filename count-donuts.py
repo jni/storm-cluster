@@ -3,9 +3,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import sys
-sys.path.append('/home/jni/projects/storm-cluster/')
-import stormcluster as sc
+
+def find_header_line(filename):
+    with open(filename) as fin:
+        for i, line in enumerate(fin):
+            if line.rstrip() == '##':
+                return (i - 1)
+    return None
+
+
+def read_locations_table(filename):
+    header_line = find_header_line(filename)
+    skiprows = list(range(header_line)) + [header_line + 1]
+    table = pd.read_csv(filename, skiprows=skiprows, delimiter='\t')
+    return table
 
 
 coords = pd.read_csv('coordinates.csv')
@@ -35,7 +46,7 @@ def select_in(table, x, y, w):
 # plt.scatter(tab_donut3['X_COORD'], tab_donut3['Y_COORD'])
 
 filenames = list(set(coords.filename))
-tables = list(map(sc.read_locations_table, filenames))
+tables = list(map(read_locations_table, filenames))
 file2table = dict(zip(filenames, tables))
 coords['table'] = coords['filename'].apply(file2table.get)
 
