@@ -63,8 +63,8 @@ coords_fig['Detections'] = detections
 coords['detections'] = detections
 
 sns.stripplot(x='Type', y='Detections', hue='Cell', data=coords_fig,
-              jitter=True, size=3, palette=sns.husl_palette(11, l=0.6))
-legend = ax.legend(loc='upper left', ncol=2, fontsize='x-small', markerscale=0.3, framealpha=0.3, title='Cell')
+              jitter=0.2, size=4, palette=sns.husl_palette(11, l=0.6))
+legend = ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', ncol=1, fontsize='x-small', markerscale=0.4, framealpha=0.3, title='Cell')
 plt.setp(legend.get_title(), fontsize='small')
 fig.tight_layout()
 
