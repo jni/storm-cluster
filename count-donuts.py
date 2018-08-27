@@ -133,7 +133,7 @@ fig.savefig('detections.tiff', dpi=300)
 # compute the ratios, including a manual pivot
 mean_per_cell = coords.groupby(['cell', 'type'])['detections'].mean().reset_index()
 puncta_cell_means = mean_per_cell.loc[mean_per_cell['type'] == 'puncta'].set_index('cell')
-donuts_cell_means = mean_per_cell.loc[mean_per_cell['type'] == 'donuts'].set_index('cell')
+donuts_cell_means = mean_per_cell.loc[mean_per_cell['type'] == 'doughnuts'].set_index('cell')
 ratios = donuts_cell_means['detections'] / puncta_cell_means['detections']
 
 # save the data
